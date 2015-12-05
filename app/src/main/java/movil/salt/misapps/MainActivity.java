@@ -3,6 +3,7 @@ package movil.salt.misapps;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -21,16 +22,19 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
+import movil.salt.misapps.adapters.AppAdapter;
+import movil.salt.misapps.model.App;
+
 import static movil.salt.misapps.R.menu.menu_buscar;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener, SearchView.OnQueryTextListener, android.support.v7.widget.SearchView.OnQueryTextListener {
 
     PackageManager packageManager;
     List<ApplicationInfo> listaAppsInfo;
-    List<ApplicationInfo> listAppsInfoBusqueda;
-    List<String> listAppNames;
-    List<String> listAppNamesBusqueda;
     ListView appNamesListView;
+
+    List<App> apps;
+    List<App> appsBusqueda;
 
     boolean busqueda = false;
 
@@ -44,9 +48,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         //UI
         packageManager = getPackageManager();
 
-        listAppNames = new ArrayList<>();
-        listAppNamesBusqueda = new ArrayList<>();
-        listAppsInfoBusqueda = new ArrayList<>();
+
+        apps = new ArrayList<>();
+        appsBusqueda = new ArrayList<>();
         appNamesListView = (ListView) findViewById(R.id.listAppsNames);
         cargarListaApps();
         appNamesListView.setOnItemClickListener(this);
@@ -54,22 +58,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private void cargarListaApps(){
         listaAppsInfo = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
-        for (ApplicationInfo app: listaAppsInfo){
-            //region logs
-            Log.i("haur","packageName: "+app.packageName);
-            Log.i("haur","Name: "+app.name);
-            Log.i("haur","ProcessName: "+app.processName);
-            Log.i("haur","ClassName: "+app.className);
-            Log.i("haur","bacupAgentName: "+app.backupAgentName);
-            Log.i("haur","loadLabel: "+app.loadLabel(packageManager));//El que lo carga
-            //endregion
 
-            String appName = app.loadLabel(packageManager).toString();
-            listAppNames.add(appName);
+        for (ApplicationInfo appInfo: listaAppsInfo){
+
+            String appName = appInfo.loadLabel(packageManager).toString();
+            Drawable icono = appInfo.loadIcon(packageManager);
+            String paquete = appInfo.packageName;
+
+            App app = new App();
+            app.setNombre(appName);
+            app.setIcono(icono);
+            app.setPaquete(paquete);
+
+            apps.add(app);
 
         }
 
-        ArrayAdapter adapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1,listAppNames);
+        AppAdapter adapter = new AppAdapter(apps,this);
         appNamesListView.setAdapter(adapter);
     }
 
@@ -77,13 +82,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         String packageApp;
-        ApplicationInfo app;
+        App app;
         if (!busqueda){
-        app = listaAppsInfo.get(position);
-        packageApp = app.packageName;
+        app = apps.get(position);
+        packageApp = app.getPaquete();
         }else {
-            app = listAppsInfoBusqueda.get(position);
-            packageApp = app.packageName;
+            app = appsBusqueda.get(position);
+            packageApp = app.getPaquete();
         }
 
         abrirApp(packageApp);
@@ -126,16 +131,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void actualizarVista(String query){
-        listAppsInfoBusqueda= new ArrayList<>();
-        listAppNamesBusqueda = new ArrayList<>();
-        for (int i=0; i<listAppNames.size(); i++) {
-            if (listAppNames.get(i).toUpperCase().contains(query.toUpperCase())) {
-                listAppNamesBusqueda.add(listAppNames.get(i));
-                listAppsInfoBusqueda.add(listaAppsInfo.get(i));
+        appsBusqueda = new ArrayList<>();
+        for (int i=0; i<apps.size(); i++) {
+            if (apps.get(i).getNombre().toUpperCase().contains(query.toUpperCase())) {
+                appsBusqueda.add(apps.get(i));
             }
         }
 
-        ArrayAdapter adapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1,listAppNamesBusqueda);
+        AppAdapter adapter = new AppAdapter(appsBusqueda,this);
         appNamesListView.setAdapter(adapter);
         busqueda = true;
     }
